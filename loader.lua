@@ -1,6 +1,6 @@
 -- =============================================
--- FLAMEPIE v2.3 – FULLY FIXED
--- Исправлены: ZIndex, скролл, утечки, перетаскивание
+-- FLAMEPIE v2.4 – FINAL FIX
+-- Исправлены: ZIndex, тогглы, вкладки, бинды, утечки
 -- =============================================
 
 local Players = game:GetService("Players")
@@ -115,7 +115,7 @@ local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(1, -120, 1, 0)
 titleText.Position = UDim2.new(0, 15, 0, 0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "🔥 FLAMEPIE v2.3 🔥"
+titleText.Text = "🔥 FLAMEPIE v2.4 🔥"
 titleText.TextColor3 = Color3.fromRGB(255, 180, 50)
 titleText.TextSize = 20
 titleText.Font = Enum.Font.GothamBold
@@ -147,15 +147,13 @@ titleBar.InputBegan:Connect(function(input)
     end
 end)
 
--- Улучшенное перетаскивание через RenderStepped (плавное)
-local function updateDrag()
+RunService.RenderStepped:Connect(function()
     if dragging then
         local mousePos = UserInputService:GetMouseLocation()
         local newPos = dragOffset + (mousePos - dragStart)
         mainFrame.Position = UDim2.new(0, newPos.X, 0, newPos.Y)
     end
-end
-RunService.RenderStepped:Connect(updateDrag)
+end)
 
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
@@ -179,7 +177,11 @@ contentFrame.BorderSizePixel = 0
 contentFrame.ZIndex = 999
 contentFrame.Parent = mainFrame
 
--- Кнопки вкладок
+-- Кнопки вкладок и контейнеры
+local tabButtons = {}
+local containers = {}
+local activeTab = ""
+
 local function createTabButton(name, text, y)
     local btn = Instance.new("TextButton")
     btn.Name = name
@@ -199,16 +201,12 @@ local function createTabButton(name, text, y)
     return btn
 end
 
-local tabButtons = {
-    Aimbot = createTabButton("AimbotTab", "🎯 Aimbot", 10),
-    Visual = createTabButton("VisualTab", "👁 Visual", 50),
-    Movement = createTabButton("MovementTab", "🏃 Movement", 90),
-    Weapon = createTabButton("WeaponTab", "🔫 Weapon", 130),
-    Binds = createTabButton("BindsTab", "⌨ Binds", 170)
-}
+tabButtons.Aimbot = createTabButton("AimbotTab", "🎯 Aimbot", 10)
+tabButtons.Visual = createTabButton("VisualTab", "👁 Visual", 50)
+tabButtons.Movement = createTabButton("MovementTab", "🏃 Movement", 90)
+tabButtons.Weapon = createTabButton("WeaponTab", "🔫 Weapon", 130)
+tabButtons.Binds = createTabButton("BindsTab", "⌨ Binds", 170)
 
--- Контейнеры вкладок с использованием ScrollingFrame (для прокрутки)
-local containers = {}
 local function createTabContainer(tabName)
     local container = Instance.new("ScrollingFrame")
     container.Name = tabName
@@ -218,15 +216,43 @@ local function createTabContainer(tabName)
     container.BorderSizePixel = 0
     container.ScrollBarThickness = 4
     container.ScrollBarImageColor3 = Color3.fromRGB(80, 140, 255)
-    container.CanvasSize = UDim2.new(0, 0, 0, 500) -- автоматически подстроится
+    container.CanvasSize = UDim2.new(0, 0, 0, 500)
     container.Visible = false
-    container.ZIndex = 999
+    container.ZIndex = 1000  -- выше contentFrame (999)
     container.Parent = contentFrame
     containers[tabName] = container
     return container
 end
 
--- Функция для обновления CanvasSize после добавления элементов
+local containerAimbot = createTabContainer("AimbotTab")
+local containerVisual = createTabContainer("VisualTab")
+local containerMovement = createTabContainer("MovementTab")
+local containerWeapon = createTabContainer("WeaponTab")
+local containerBinds = createTabContainer("BindsTab")
+
+local function selectTab(tabName)
+    activeTab = tabName
+    for name, cont in pairs(containers) do
+        cont.Visible = (name == tabName)
+    end
+    for name, btn in pairs(tabButtons) do
+        if name == tabName then
+            btn.BackgroundColor3 = Color3.fromRGB(50, 70, 120)
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(25, 30, 45)
+            btn.TextColor3 = Color3.fromRGB(180, 200, 255)
+        end
+    end
+end
+
+for name, btn in pairs(tabButtons) do
+    btn.MouseButton1Click:Connect(function()
+        selectTab(name)
+    end)
+end
+
+-- Вспомогательные функции UI (исправленные)
 local function updateCanvasSize(container)
     local contentHeight = 0
     for _, child in ipairs(container:GetChildren()) do
@@ -238,24 +264,8 @@ local function updateCanvasSize(container)
     container.CanvasSize = UDim2.new(0, 0, 0, contentHeight + 20)
 end
 
-local containerAimbot = createTabContainer("AimbotTab")
-local containerVisual = createTabContainer("VisualTab")
-local containerMovement = createTabContainer("MovementTab")
-local containerWeapon = createTabContainer("WeaponTab")
-local containerBinds = createTabContainer("BindsTab")
-
--- Функция переключения вкладок (исправлена)
-local function showTab(tabName)
-    for name, btn in pairs(tabButtons) do
-        btn.BackgroundColor3 = (name == tabName) and Color3.fromRGB(50, 70, 120) or Color3.fromRGB(25, 30, 45)
-    end
-    for name, container in pairs(containers) do
-        container.Visible = (name == tabName)
-    end
-end
-
--- Вспомогательные элементы с установкой ZIndex = 1000
 local function createToggle(parent, labelText, y, defaultState, onChange)
+    local state = defaultState
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, 0, 0, 30)
     frame.Position = UDim2.new(0, 0, 0, y)
@@ -264,7 +274,7 @@ local function createToggle(parent, labelText, y, defaultState, onChange)
     frame.Parent = parent
 
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.6, 0, 1, 0)
+    label.Size = UDim2.new(0.7, 0, 1, 0)
     label.Position = UDim2.new(0, 5, 0, 0)
     label.Text = labelText
     label.TextColor3 = Color3.fromRGB(200, 210, 230)
@@ -272,31 +282,45 @@ local function createToggle(parent, labelText, y, defaultState, onChange)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Font = Enum.Font.Gotham
     label.TextSize = 14
-    label.ZIndex = 1000
+    label.ZIndex = 1001
     label.Parent = frame
 
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 70, 0, 24)
-    btn.Position = UDim2.new(0.75, 0, 0.03, 0)
-    btn.BackgroundColor3 = defaultState and Color3.fromRGB(50, 180, 70) or Color3.fromRGB(60, 60, 80)
-    btn.BorderSizePixel = 0
-    btn.Text = defaultState and "ON" or "OFF"
+    btn.Size = UDim2.new(0, 22, 0, 22)
+    btn.Position = UDim2.new(1, -25, 0.5, -11)
+    btn.BackgroundColor3 = state and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(40, 40, 40)
+    btn.Text = state and "✓" or ""
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 12
     btn.Font = Enum.Font.GothamBold
-    btn.ZIndex = 1000
+    btn.TextSize = 14
+    btn.ZIndex = 1001
+    btn.BorderSizePixel = 0
     btn.Parent = frame
 
-    local state = defaultState
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 4)
+    corner.Parent = btn
+
+    local function updateVisuals()
+        btn.BackgroundColor3 = state and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(40, 40, 40)
+        btn.Text = state and "✓" or ""
+    end
+
     btn.MouseButton1Click:Connect(function()
         state = not state
-        btn.BackgroundColor3 = state and Color3.fromRGB(50, 180, 70) or Color3.fromRGB(60, 60, 80)
-        btn.Text = state and "ON" or "OFF"
+        updateVisuals()
         if onChange then onChange(state) end
     end)
 
     updateCanvasSize(parent)
-    return { Button = btn, GetState = function() return state end, SetState = function(s) state = s; btn.BackgroundColor3 = s and Color3.fromRGB(50,180,70) or Color3.fromRGB(60,60,80); btn.Text = s and "ON" or "OFF"; if onChange then onChange(s) end end }
+    return {
+        GetState = function() return state end,
+        SetState = function(newState, triggerCallback)
+            state = newState
+            updateVisuals()
+            if triggerCallback and onChange then onChange(state) end
+        end
+    }
 end
 
 local function createSlider(parent, labelText, y, minVal, maxVal, defaultVal, onChange)
@@ -314,7 +338,7 @@ local function createSlider(parent, labelText, y, minVal, maxVal, defaultVal, on
     label.BackgroundTransparency = 1
     label.Font = Enum.Font.Gotham
     label.TextSize = 13
-    label.ZIndex = 1000
+    label.ZIndex = 1001
     label.Parent = frame
 
     local sliderBg = Instance.new("Frame")
@@ -322,14 +346,14 @@ local function createSlider(parent, labelText, y, minVal, maxVal, defaultVal, on
     sliderBg.Size = UDim2.new(1, 0, 0, 6)
     sliderBg.BackgroundColor3 = Color3.fromRGB(40, 45, 65)
     sliderBg.BorderSizePixel = 0
-    sliderBg.ZIndex = 1000
+    sliderBg.ZIndex = 1001
     sliderBg.Parent = frame
 
     local sliderFill = Instance.new("Frame")
     sliderFill.Size = UDim2.new((defaultVal - minVal) / (maxVal - minVal), 0, 1, 0)
     sliderFill.BackgroundColor3 = Color3.fromRGB(80, 160, 255)
     sliderFill.BorderSizePixel = 0
-    sliderFill.ZIndex = 1000
+    sliderFill.ZIndex = 1001
     sliderFill.Parent = sliderBg
 
     local knob = Instance.new("TextButton")
@@ -338,7 +362,7 @@ local function createSlider(parent, labelText, y, minVal, maxVal, defaultVal, on
     knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     knob.BorderSizePixel = 0
     knob.Text = ""
-    knob.ZIndex = 1000
+    knob.ZIndex = 1001
     knob.Parent = sliderBg
 
     local draggingSlider = false
@@ -369,7 +393,17 @@ local function createSlider(parent, labelText, y, minVal, maxVal, defaultVal, on
     end)
 
     updateCanvasSize(parent)
-    return { GetValue = function() return minVal + (maxVal - minVal) * knob.Position.X.Scale end, SetValue = function(v) v = math.clamp(v, minVal, maxVal); local p = (v - minVal) / (maxVal - minVal); sliderFill.Size = UDim2.new(p, 0, 1, 0); knob.Position = UDim2.new(p, -8, 0, -5); label.Text = labelText .. ": " .. tostring(v); if onChange then onChange(v) end end }
+    return {
+        GetValue = function() return minVal + (maxVal - minVal) * knob.Position.X.Scale end,
+        SetValue = function(v)
+            v = math.clamp(v, minVal, maxVal)
+            local p = (v - minVal) / (maxVal - minVal)
+            sliderFill.Size = UDim2.new(p, 0, 1, 0)
+            knob.Position = UDim2.new(p, -8, 0, -5)
+            label.Text = labelText .. ": " .. tostring(v)
+            if onChange then onChange(v) end
+        end
+    }
 end
 
 -- ====== ЗАПОЛНЕНИЕ ВКЛАДОК ======
@@ -389,7 +423,7 @@ modeLabel.TextColor3 = Color3.fromRGB(180, 200, 255)
 modeLabel.BackgroundTransparency = 1
 modeLabel.Font = Enum.Font.Gotham
 modeLabel.TextSize = 14
-modeLabel.ZIndex = 1000
+modeLabel.ZIndex = 1001
 modeLabel.Parent = modeFrame
 
 local function createModeBtn(parent, text, x, default)
@@ -402,7 +436,7 @@ local function createModeBtn(parent, text, x, default)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.TextSize = 12
     btn.Font = Enum.Font.GothamBold
-    btn.ZIndex = 1000
+    btn.ZIndex = 1001
     btn.Parent = parent
     return btn
 end
@@ -469,7 +503,7 @@ for _, act in ipairs(actions) do
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Font = Enum.Font.Gotham
     label.TextSize = 14
-    label.ZIndex = 1000
+    label.ZIndex = 1001
     label.Parent = frame
 
     local keyBtn = Instance.new("TextButton")
@@ -482,7 +516,7 @@ for _, act in ipairs(actions) do
     keyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     keyBtn.TextSize = 12
     keyBtn.Font = Enum.Font.Gotham
-    keyBtn.ZIndex = 1000
+    keyBtn.ZIndex = 1001
     keyBtn.Parent = frame
 
     local listening = false
@@ -520,13 +554,7 @@ updateCanvasSize(containerMovement)
 updateCanvasSize(containerWeapon)
 updateCanvasSize(containerBinds)
 
-showTab("AimbotTab")
-
-for name, btn in pairs(tabButtons) do
-    btn.MouseButton1Click:Connect(function()
-        showTab(name)
-    end)
-end
+selectTab("AimbotTab")
 
 -- ====== УПРАВЛЕНИЕ: G – меню, Y – аимбот ======
 UserInputService.InputBegan:Connect(function(input, gp)
@@ -535,7 +563,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
         if mainFrame.Visible then animateHide() else animateShow() end
     elseif input.KeyCode == Enum.KeyCode.Y then
         aimbotEnabled = not aimbotEnabled
-        aimToggle.SetState(aimbotEnabled)
+        aimToggle.SetState(aimbotEnabled, false) -- не вызываем onChange повторно
         settings.toggles.aimbot = aimbotEnabled
     end
 end)
@@ -559,7 +587,7 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
     end
 end)
 
--- *** ИСПРАВЛЕНИЕ: JumpRequest вынесен за RenderStepped (один раз) ***
+-- JumpRequest (один раз)
 UserInputService.JumpRequest:Connect(function()
     if infJumpEnabled and hum and hum.Parent then
         hum:ChangeState(Enum.HumanoidStateType.Jumping)
@@ -871,7 +899,7 @@ RunService.RenderStepped:Connect(function(deltaTime)
     end
 end)
 
--- Обработка биндов
+-- Обработка биндов (без зацикливания)
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.Unknown then return end
@@ -879,35 +907,35 @@ UserInputService.InputBegan:Connect(function(input, gp)
         if key == input.KeyCode then
             if action == "aimbot" then
                 aimbotEnabled = not aimbotEnabled
-                aimToggle.SetState(aimbotEnabled)
+                aimToggle.SetState(aimbotEnabled, false)
                 settings.toggles.aimbot = aimbotEnabled
             elseif action == "triggerbot" then
                 triggerBot = not triggerBot
-                triggerToggle.SetState(triggerBot)
+                triggerToggle.SetState(triggerBot, false)
                 settings.toggles.triggerbot = triggerBot
             elseif action == "fly" then
                 flyEnabled = not flyEnabled
-                flyToggle.SetState(flyEnabled)
+                flyToggle.SetState(flyEnabled, false)
                 settings.toggles.fly = flyEnabled
             elseif action == "noclip" then
                 noclipEnabled = not noclipEnabled
-                noclipToggle.SetState(noclipEnabled)
+                noclipToggle.SetState(noclipEnabled, false)
                 settings.toggles.noclip = noclipEnabled
             elseif action == "speed" then
                 speedEnabled = not speedEnabled
-                speedToggle.SetState(speedEnabled)
+                speedToggle.SetState(speedEnabled, false)
                 settings.toggles.speed = speedEnabled
             elseif action == "infjump" then
                 infJumpEnabled = not infJumpEnabled
-                infJumpToggle.SetState(infJumpEnabled)
+                infJumpToggle.SetState(infJumpEnabled, false)
                 settings.toggles.infjump = infJumpEnabled
             elseif action == "esp" then
                 espEnabled = not espEnabled
-                espToggle.SetState(espEnabled)
+                espToggle.SetState(espEnabled, false)
                 settings.toggles.esp = espEnabled
             elseif action == "norecoil" then
                 noRecoilEnabled = not noRecoilEnabled
-                noRecoilToggle.SetState(noRecoilEnabled)
+                noRecoilToggle.SetState(noRecoilEnabled, false)
                 settings.toggles.norecoil = noRecoilEnabled
             end
             break
@@ -915,4 +943,4 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
-print("✅ FlamePie v2.3 loaded! G - menu, Y - toggle aimbot.")
+print("✅ FlamePie v2.4 loaded! G - menu, Y - toggle aimbot.")
