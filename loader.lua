@@ -1,7 +1,6 @@
 -- =============================================
--- FLAMEPIE v2.5 – FINAL STABLE
--- Исправлены: CanvasSize (500), ZIndex (-100),
--- переключение вкладок, тогглы, бинды, утечки
+-- FLAMEPIE v2.6 – FINAL STABLE (Click on whole row)
+-- Исправлено: клик по всей строке тоггла, ClipsDescendants
 -- =============================================
 
 local Players = game:GetService("Players")
@@ -116,7 +115,7 @@ local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(1, -120, 1, 0)
 titleText.Position = UDim2.new(0, 15, 0, 0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "🔥 FLAMEPIE v2.5 🔥"
+titleText.Text = "🔥 FLAMEPIE v2.6 🔥"
 titleText.TextColor3 = Color3.fromRGB(255, 180, 50)
 titleText.TextSize = 20
 titleText.Font = Enum.Font.GothamBold
@@ -175,6 +174,7 @@ contentFrame.Position = UDim2.new(0, 130, 0, 38)
 contentFrame.BackgroundColor3 = Color3.fromRGB(10, 12, 20)
 contentFrame.BackgroundTransparency = 0.05
 contentFrame.BorderSizePixel = 0
+contentFrame.ClipsDescendants = true   -- <-- ИСПРАВЛЕНО: обрезаем содержимое
 contentFrame.ZIndex = 899
 contentFrame.Parent = mainFrame
 
@@ -195,6 +195,8 @@ local function createTabButton(name, text, y)
     btn.TextSize = 13
     btn.Font = Enum.Font.Gotham
     btn.ZIndex = 901
+    btn.Selectable = true
+    btn.Active = true
     btn.Parent = tabPanel
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
@@ -217,7 +219,7 @@ local function createTabContainer(tabName)
     container.BorderSizePixel = 0
     container.ScrollBarThickness = 4
     container.ScrollBarImageColor3 = Color3.fromRGB(80, 140, 255)
-    container.CanvasSize = UDim2.new(0, 0, 0, 500)  -- исправлено!
+    container.CanvasSize = UDim2.new(0, 0, 0, 500)
     container.Visible = false
     container.ZIndex = 900
     container.Parent = contentFrame
@@ -253,7 +255,7 @@ for name, btn in pairs(tabButtons) do
     end)
 end
 
--- Вспомогательные функции UI (исправленные)
+-- Вспомогательные функции UI
 local function updateCanvasSize(container)
     local contentHeight = 0
     for _, child in ipairs(container:GetChildren()) do
@@ -265,6 +267,7 @@ local function updateCanvasSize(container)
     container.CanvasSize = UDim2.new(0, 0, 0, contentHeight + 20)
 end
 
+-- ИСПРАВЛЕННЫЙ createToggle: клик по всей строке
 local function createToggle(parent, labelText, y, defaultState, onChange)
     local state = defaultState
     local frame = Instance.new("Frame")
@@ -272,6 +275,8 @@ local function createToggle(parent, labelText, y, defaultState, onChange)
     frame.Position = UDim2.new(0, 0, 0, y)
     frame.BackgroundTransparency = 1
     frame.ZIndex = 900
+    frame.Selectable = true
+    frame.Active = true
     frame.Parent = parent
 
     local label = Instance.new("TextLabel")
@@ -296,6 +301,8 @@ local function createToggle(parent, labelText, y, defaultState, onChange)
     btn.TextSize = 14
     btn.ZIndex = 902
     btn.BorderSizePixel = 0
+    btn.Selectable = true
+    btn.Active = true
     btn.Parent = frame
 
     local corner = Instance.new("UICorner")
@@ -307,7 +314,8 @@ local function createToggle(parent, labelText, y, defaultState, onChange)
         btn.Text = state and "✓" or ""
     end
 
-    btn.MouseButton1Click:Connect(function()
+    -- Клик по всей строке переключает состояние
+    frame.MouseButton1Click:Connect(function()
         state = not state
         updateVisuals()
         if onChange then onChange(state) end
@@ -364,6 +372,8 @@ local function createSlider(parent, labelText, y, minVal, maxVal, defaultVal, on
     knob.BorderSizePixel = 0
     knob.Text = ""
     knob.ZIndex = 902
+    knob.Selectable = true
+    knob.Active = true
     knob.Parent = sliderBg
 
     local draggingSlider = false
@@ -438,6 +448,8 @@ local function createModeBtn(parent, text, x, default)
     btn.TextSize = 12
     btn.Font = Enum.Font.GothamBold
     btn.ZIndex = 902
+    btn.Selectable = true
+    btn.Active = true
     btn.Parent = parent
     return btn
 end
@@ -475,7 +487,7 @@ local infJumpToggle = createToggle(containerMovement, "Infinite Jump", 250, infJ
 -- Weapon
 local noRecoilToggle = createToggle(containerWeapon, "No Recoil", 0, noRecoilEnabled, function(s) noRecoilEnabled = s; settings.toggles.norecoil = s end)
 
--- Binds
+-- Binds (клик по всей строке)
 local actions = {
     {name = "Aimbot", key = "aimbot"},
     {name = "Trigger Bot", key = "triggerbot"},
@@ -493,6 +505,8 @@ for _, act in ipairs(actions) do
     frame.Position = UDim2.new(0, 0, 0, bindsY)
     frame.BackgroundTransparency = 1
     frame.ZIndex = 900
+    frame.Selectable = true
+    frame.Active = true
     frame.Parent = containerBinds
 
     local label = Instance.new("TextLabel")
@@ -518,10 +532,13 @@ for _, act in ipairs(actions) do
     keyBtn.TextSize = 12
     keyBtn.Font = Enum.Font.Gotham
     keyBtn.ZIndex = 902
+    keyBtn.Selectable = true
+    keyBtn.Active = true
     keyBtn.Parent = frame
 
     local listening = false
-    keyBtn.MouseButton1Click:Connect(function()
+    -- Клик по всей строке запускает режим прослушивания
+    frame.MouseButton1Click:Connect(function()
         if listening then return end
         listening = true
         keyBtn.Text = "..."
@@ -546,6 +563,7 @@ for _, act in ipairs(actions) do
             end
         end)
     end)
+
     bindsY = bindsY + 38
 end
 
@@ -555,7 +573,6 @@ updateCanvasSize(containerMovement)
 updateCanvasSize(containerWeapon)
 updateCanvasSize(containerBinds)
 
--- Принудительная активация первой вкладки
 selectTab("AimbotTab")
 
 -- ====== УПРАВЛЕНИЕ: G – меню, Y – аимбот ======
@@ -570,7 +587,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
--- ====== ОСНОВНАЯ ЛОГИКА ======
+-- ====== ОСНОВНАЯ ЛОГИКА (без изменений) ======
 local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local hum = char:WaitForChild("Humanoid")
 local rootPart = char:WaitForChild("HumanoidRootPart")
@@ -589,7 +606,6 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
     end
 end)
 
--- JumpRequest (один раз)
 UserInputService.JumpRequest:Connect(function()
     if infJumpEnabled and hum and hum.Parent then
         hum:ChangeState(Enum.HumanoidStateType.Jumping)
@@ -652,7 +668,6 @@ local function applyHitboxSize()
     end
 end
 
--- ESP: 3D Box + Имя + HP (полоска)
 local espBoxes = {}
 
 local function updateESP()
@@ -783,7 +798,6 @@ Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function() end)
 end)
 
--- FOV Circle
 local fovCircle = nil
 if Drawing and Drawing.new then
     fovCircle = Drawing.new("Circle")
@@ -792,7 +806,6 @@ if Drawing and Drawing.new then
     fovCircle.Visible = false
 end
 
--- Trigger Bot
 task.spawn(function()
     while screenGui and screenGui.Parent do
         if triggerBot and aimbotEnabled then
@@ -808,11 +821,9 @@ task.spawn(function()
     end
 end)
 
--- Основной цикл
 RunService.RenderStepped:Connect(function(deltaTime)
     if not char or not hum or not rootPart then return end
 
-    -- Speed Hack
     if speedEnabled then
         local moveDir = hum.MoveDirection
         if moveDir.Magnitude > 0 then
@@ -823,7 +834,6 @@ RunService.RenderStepped:Connect(function(deltaTime)
         end
     end
 
-    -- Fly
     if flyEnabled then
         hum.PlatformStand = true
         local direction = Vector3.new()
@@ -840,14 +850,12 @@ RunService.RenderStepped:Connect(function(deltaTime)
         hum.PlatformStand = false
     end
 
-    -- Noclip
     if noclipEnabled then
         for _, part in ipairs(char:GetDescendants()) do
             if part:IsA("BasePart") then part.CanCollide = false end
         end
     end
 
-    -- No Recoil
     if noRecoilEnabled then
         local tool = char:FindFirstChildOfClass("Tool")
         if tool then
@@ -859,13 +867,9 @@ RunService.RenderStepped:Connect(function(deltaTime)
         end
     end
 
-    -- ESP
     updateESP()
-
-    -- Hitbox
     applyHitboxSize()
 
-    -- FOV Circle
     if aimbotEnabled and fovCircle then
         local screenSize = Camera.ViewportSize
         local center = Vector2.new(screenSize.X/2, screenSize.Y/2)
@@ -877,7 +881,6 @@ RunService.RenderStepped:Connect(function(deltaTime)
         fovCircle.Visible = false
     end
 
-    -- Aimbot
     if aimbotEnabled then
         local target = getClosestInFOV()
         if target then
@@ -901,7 +904,6 @@ RunService.RenderStepped:Connect(function(deltaTime)
     end
 end)
 
--- Обработка биндов (без зацикливания)
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.Unknown then return end
@@ -945,4 +947,4 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
-print("✅ FlamePie v2.5 loaded! G - menu, Y - toggle aimbot.")
+print("✅ FlamePie v2.6 loaded! G - menu, Y - toggle aimbot.")
