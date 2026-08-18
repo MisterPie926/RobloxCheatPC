@@ -1,6 +1,6 @@
 -- =============================================
--- FLAMEPIE v2.2 – FIXED TABS & VISIBILITY
--- Управление: G – меню, Y – аимбот (вкл/выкл)
+-- FLAMEPIE v2.3 – FULLY FIXED
+-- Исправлены: ZIndex, скролл, утечки, перетаскивание
 -- =============================================
 
 local Players = game:GetService("Players")
@@ -10,7 +10,6 @@ local TweenService = game:GetService("TweenService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
-local Mouse = LocalPlayer:GetMouse()
 local parent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
 
 if parent:FindFirstChild("FlamePieGUI") then parent.FlamePieGUI:Destroy() end
@@ -116,11 +115,12 @@ local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(1, -120, 1, 0)
 titleText.Position = UDim2.new(0, 15, 0, 0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "🔥 FLAMEPIE v2.2 🔥"
+titleText.Text = "🔥 FLAMEPIE v2.3 🔥"
 titleText.TextColor3 = Color3.fromRGB(255, 180, 50)
 titleText.TextSize = 20
 titleText.Font = Enum.Font.GothamBold
 titleText.TextXAlignment = Enum.TextXAlignment.Left
+titleText.ZIndex = 1000
 titleText.Parent = titleBar
 
 local closeBtn = Instance.new("TextButton")
@@ -132,12 +132,13 @@ closeBtn.Text = "✕"
 closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeBtn.TextSize = 16
 closeBtn.Font = Enum.Font.GothamBold
-closeBtn.ZIndex = 999
+closeBtn.ZIndex = 1000
 closeBtn.Parent = titleBar
 closeBtn.MouseButton1Click:Connect(function() animateHide() end)
 
 local dragging = false
 local dragStart, dragOffset
+
 titleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
@@ -145,12 +146,17 @@ titleBar.InputBegan:Connect(function(input)
         dragOffset = mainFrame.AbsolutePosition
     end
 end)
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local newPos = dragOffset + (input.Position - dragStart)
+
+-- Улучшенное перетаскивание через RenderStepped (плавное)
+local function updateDrag()
+    if dragging then
+        local mousePos = UserInputService:GetMouseLocation()
+        local newPos = dragOffset + (mousePos - dragStart)
         mainFrame.Position = UDim2.new(0, newPos.X, 0, newPos.Y)
     end
-end)
+end
+RunService.RenderStepped:Connect(updateDrag)
+
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
 end)
@@ -185,7 +191,7 @@ local function createTabButton(name, text, y)
     btn.TextColor3 = Color3.fromRGB(180, 200, 255)
     btn.TextSize = 13
     btn.Font = Enum.Font.Gotham
-    btn.ZIndex = 999
+    btn.ZIndex = 1000
     btn.Parent = tabPanel
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
@@ -201,20 +207,35 @@ local tabButtons = {
     Binds = createTabButton("BindsTab", "⌨ Binds", 170)
 }
 
--- Контейнеры для содержимого вкладок (храним в таблице)
+-- Контейнеры вкладок с использованием ScrollingFrame (для прокрутки)
 local containers = {}
-
 local function createTabContainer(tabName)
-    local container = Instance.new("Frame")
+    local container = Instance.new("ScrollingFrame")
     container.Name = tabName
     container.Size = UDim2.new(1, -20, 1, -20)
     container.Position = UDim2.new(0, 10, 0, 10)
     container.BackgroundTransparency = 1
+    container.BorderSizePixel = 0
+    container.ScrollBarThickness = 4
+    container.ScrollBarImageColor3 = Color3.fromRGB(80, 140, 255)
+    container.CanvasSize = UDim2.new(0, 0, 0, 500) -- автоматически подстроится
     container.Visible = false
     container.ZIndex = 999
     container.Parent = contentFrame
     containers[tabName] = container
     return container
+end
+
+-- Функция для обновления CanvasSize после добавления элементов
+local function updateCanvasSize(container)
+    local contentHeight = 0
+    for _, child in ipairs(container:GetChildren()) do
+        if child:IsA("Frame") then
+            local y = child.Position.Y.Offset + child.Size.Y.Offset
+            if y > contentHeight then contentHeight = y end
+        end
+    end
+    container.CanvasSize = UDim2.new(0, 0, 0, contentHeight + 20)
 end
 
 local containerAimbot = createTabContainer("AimbotTab")
@@ -223,7 +244,7 @@ local containerMovement = createTabContainer("MovementTab")
 local containerWeapon = createTabContainer("WeaponTab")
 local containerBinds = createTabContainer("BindsTab")
 
--- Функция переключения вкладок (надёжная)
+-- Функция переключения вкладок (исправлена)
 local function showTab(tabName)
     for name, btn in pairs(tabButtons) do
         btn.BackgroundColor3 = (name == tabName) and Color3.fromRGB(50, 70, 120) or Color3.fromRGB(25, 30, 45)
@@ -233,13 +254,15 @@ local function showTab(tabName)
     end
 end
 
--- Вспомогательные элементы интерфейса
+-- Вспомогательные элементы с установкой ZIndex = 1000
 local function createToggle(parent, labelText, y, defaultState, onChange)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, 0, 0, 30)
     frame.Position = UDim2.new(0, 0, 0, y)
     frame.BackgroundTransparency = 1
+    frame.ZIndex = 1000
     frame.Parent = parent
+
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(0.6, 0, 1, 0)
     label.Position = UDim2.new(0, 5, 0, 0)
@@ -249,7 +272,9 @@ local function createToggle(parent, labelText, y, defaultState, onChange)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Font = Enum.Font.Gotham
     label.TextSize = 14
+    label.ZIndex = 1000
     label.Parent = frame
+
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 70, 0, 24)
     btn.Position = UDim2.new(0.75, 0, 0.03, 0)
@@ -259,7 +284,9 @@ local function createToggle(parent, labelText, y, defaultState, onChange)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.TextSize = 12
     btn.Font = Enum.Font.GothamBold
+    btn.ZIndex = 1000
     btn.Parent = frame
+
     local state = defaultState
     btn.MouseButton1Click:Connect(function()
         state = not state
@@ -267,6 +294,8 @@ local function createToggle(parent, labelText, y, defaultState, onChange)
         btn.Text = state and "ON" or "OFF"
         if onChange then onChange(state) end
     end)
+
+    updateCanvasSize(parent)
     return { Button = btn, GetState = function() return state end, SetState = function(s) state = s; btn.BackgroundColor3 = s and Color3.fromRGB(50,180,70) or Color3.fromRGB(60,60,80); btn.Text = s and "ON" or "OFF"; if onChange then onChange(s) end end }
 end
 
@@ -275,7 +304,9 @@ local function createSlider(parent, labelText, y, minVal, maxVal, defaultVal, on
     frame.Size = UDim2.new(1, -10, 0, 50)
     frame.Position = UDim2.new(0, 5, 0, y)
     frame.BackgroundTransparency = 1
+    frame.ZIndex = 1000
     frame.Parent = parent
+
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1, 0, 0, 18)
     label.Text = labelText .. ": " .. tostring(defaultVal)
@@ -283,25 +314,33 @@ local function createSlider(parent, labelText, y, minVal, maxVal, defaultVal, on
     label.BackgroundTransparency = 1
     label.Font = Enum.Font.Gotham
     label.TextSize = 13
+    label.ZIndex = 1000
     label.Parent = frame
+
     local sliderBg = Instance.new("Frame")
     sliderBg.Position = UDim2.new(0, 0, 0, 22)
     sliderBg.Size = UDim2.new(1, 0, 0, 6)
     sliderBg.BackgroundColor3 = Color3.fromRGB(40, 45, 65)
     sliderBg.BorderSizePixel = 0
+    sliderBg.ZIndex = 1000
     sliderBg.Parent = frame
+
     local sliderFill = Instance.new("Frame")
     sliderFill.Size = UDim2.new((defaultVal - minVal) / (maxVal - minVal), 0, 1, 0)
     sliderFill.BackgroundColor3 = Color3.fromRGB(80, 160, 255)
     sliderFill.BorderSizePixel = 0
+    sliderFill.ZIndex = 1000
     sliderFill.Parent = sliderBg
+
     local knob = Instance.new("TextButton")
     knob.Size = UDim2.new(0, 16, 0, 16)
     knob.Position = UDim2.new((defaultVal - minVal) / (maxVal - minVal), -8, 0, -5)
     knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     knob.BorderSizePixel = 0
     knob.Text = ""
+    knob.ZIndex = 1000
     knob.Parent = sliderBg
+
     local draggingSlider = false
     local function updateSlider(input)
         local mouseX = input.Position.X
@@ -317,6 +356,7 @@ local function createSlider(parent, labelText, y, minVal, maxVal, defaultVal, on
         if onChange then onChange(val) end
         return val
     end
+
     knob.MouseButton1Down:Connect(function() draggingSlider = true end)
     UserInputService.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 and draggingSlider then updateSlider(input) end
@@ -327,6 +367,8 @@ local function createSlider(parent, labelText, y, minVal, maxVal, defaultVal, on
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingSlider = false end
     end)
+
+    updateCanvasSize(parent)
     return { GetValue = function() return minVal + (maxVal - minVal) * knob.Position.X.Scale end, SetValue = function(v) v = math.clamp(v, minVal, maxVal); local p = (v - minVal) / (maxVal - minVal); sliderFill.Size = UDim2.new(p, 0, 1, 0); knob.Position = UDim2.new(p, -8, 0, -5); label.Text = labelText .. ": " .. tostring(v); if onChange then onChange(v) end end }
 end
 
@@ -338,6 +380,7 @@ local modeFrame = Instance.new("Frame")
 modeFrame.Size = UDim2.new(1, 0, 0, 35)
 modeFrame.Position = UDim2.new(0, 0, 0, 35)
 modeFrame.BackgroundTransparency = 1
+modeFrame.ZIndex = 1000
 modeFrame.Parent = containerAimbot
 local modeLabel = Instance.new("TextLabel")
 modeLabel.Size = UDim2.new(0.2, 0, 1, 0)
@@ -346,6 +389,7 @@ modeLabel.TextColor3 = Color3.fromRGB(180, 200, 255)
 modeLabel.BackgroundTransparency = 1
 modeLabel.Font = Enum.Font.Gotham
 modeLabel.TextSize = 14
+modeLabel.ZIndex = 1000
 modeLabel.Parent = modeFrame
 
 local function createModeBtn(parent, text, x, default)
@@ -358,6 +402,7 @@ local function createModeBtn(parent, text, x, default)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.TextSize = 12
     btn.Font = Enum.Font.GothamBold
+    btn.ZIndex = 1000
     btn.Parent = parent
     return btn
 end
@@ -412,7 +457,9 @@ for _, act in ipairs(actions) do
     frame.Size = UDim2.new(1, 0, 0, 32)
     frame.Position = UDim2.new(0, 0, 0, bindsY)
     frame.BackgroundTransparency = 1
+    frame.ZIndex = 1000
     frame.Parent = containerBinds
+
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(0.5, 0, 1, 0)
     label.Position = UDim2.new(0, 5, 0, 0)
@@ -422,7 +469,9 @@ for _, act in ipairs(actions) do
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Font = Enum.Font.Gotham
     label.TextSize = 14
+    label.ZIndex = 1000
     label.Parent = frame
+
     local keyBtn = Instance.new("TextButton")
     keyBtn.Size = UDim2.new(0, 100, 0, 26)
     keyBtn.Position = UDim2.new(0.7, 0, 0.02, 0)
@@ -433,7 +482,9 @@ for _, act in ipairs(actions) do
     keyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     keyBtn.TextSize = 12
     keyBtn.Font = Enum.Font.Gotham
+    keyBtn.ZIndex = 1000
     keyBtn.Parent = frame
+
     local listening = false
     keyBtn.MouseButton1Click:Connect(function()
         if listening then return end
@@ -463,10 +514,14 @@ for _, act in ipairs(actions) do
     bindsY = bindsY + 38
 end
 
--- Показываем первую вкладку (Aimbot)
+updateCanvasSize(containerAimbot)
+updateCanvasSize(containerVisual)
+updateCanvasSize(containerMovement)
+updateCanvasSize(containerWeapon)
+updateCanvasSize(containerBinds)
+
 showTab("AimbotTab")
 
--- Назначаем обработчики для кнопок вкладок
 for name, btn in pairs(tabButtons) do
     btn.MouseButton1Click:Connect(function()
         showTab(name)
@@ -501,6 +556,13 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
                 if part:IsA("BasePart") then part.CanCollide = false end
             end
         end)
+    end
+end)
+
+-- *** ИСПРАВЛЕНИЕ: JumpRequest вынесен за RenderStepped (один раз) ***
+UserInputService.JumpRequest:Connect(function()
+    if infJumpEnabled and hum and hum.Parent then
+        hum:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end)
 
@@ -566,10 +628,11 @@ local espBoxes = {}
 local function updateESP()
     if not espEnabled then
         for _, data in pairs(espBoxes) do
-            if data.Box then data.Box:Destroy() end
-            if data.NameLabel then data.NameLabel:Destroy() end
-            if data.HealthBar then data.HealthBar:Destroy() end
-            if data.HealthText then data.HealthText:Destroy() end
+            for _, obj in pairs(data) do
+                if type(obj) == "Instance" and obj:IsA("Instance") then
+                    obj:Destroy()
+                end
+            end
         end
         espBoxes = {}
         return
@@ -592,6 +655,7 @@ local function updateESP()
                         box.BorderSizePixel = 1
                         box.BorderColor3 = Color3.fromRGB(0,255,0)
                         box.Visible = true
+                        box.ZIndex = 1000
                         box.Parent = screenGui
 
                         local nameLbl = Instance.new("TextLabel")
@@ -603,6 +667,7 @@ local function updateESP()
                         nameLbl.TextStrokeTransparency = 0.3
                         nameLbl.TextStrokeColor3 = Color3.fromRGB(0,0,0)
                         nameLbl.Visible = true
+                        nameLbl.ZIndex = 1000
                         nameLbl.Parent = screenGui
 
                         local healthBg = Instance.new("Frame")
@@ -610,12 +675,14 @@ local function updateESP()
                         healthBg.BackgroundColor3 = Color3.fromRGB(40,40,40)
                         healthBg.BorderSizePixel = 0
                         healthBg.Visible = true
+                        healthBg.ZIndex = 1000
                         healthBg.Parent = screenGui
 
                         local healthFill = Instance.new("Frame")
                         healthFill.Size = UDim2.new(1, 0, 1, 0)
                         healthFill.BackgroundColor3 = Color3.fromRGB(0,200,0)
                         healthFill.BorderSizePixel = 0
+                        healthFill.ZIndex = 1000
                         healthFill.Parent = healthBg
 
                         local healthTxt = Instance.new("TextLabel")
@@ -626,12 +693,12 @@ local function updateESP()
                         healthTxt.TextSize = 11
                         healthTxt.TextStrokeTransparency = 0.3
                         healthTxt.Visible = true
+                        healthTxt.ZIndex = 1000
                         healthTxt.Parent = screenGui
 
                         espBoxes[player] = { Box = box, NameLabel = nameLbl, HealthBar = healthBg, HealthFill = healthFill, HealthText = healthTxt }
                     end
                     local data = espBoxes[player]
-                    local headPos, _ = Camera:WorldToViewportPoint(head.Position)
                     local dist = (Camera.CFrame.Position - root.Position).Magnitude
                     local scale = 350 / math.max(dist, 1)
                     local boxSize = Vector2.new(2.5 * scale, 4.5 * scale)
@@ -662,14 +729,18 @@ local function updateESP()
                 else
                     if espBoxes[player] then
                         for _, obj in pairs(espBoxes[player]) do
-                            if obj and obj:IsA("Instance") then obj.Visible = false end
+                            if type(obj) == "Instance" and obj:IsA("Instance") then
+                                obj.Visible = false
+                            end
                         end
                     end
                 end
             else
                 if espBoxes[player] then
                     for _, obj in pairs(espBoxes[player]) do
-                        if obj and obj:IsA("Instance") then obj:Destroy() end
+                        if type(obj) == "Instance" and obj:IsA("Instance") then
+                            obj:Destroy()
+                        end
                     end
                     espBoxes[player] = nil
                 end
@@ -758,13 +829,6 @@ RunService.RenderStepped:Connect(function(deltaTime)
         end
     end
 
-    -- Inf Jump
-    if infJumpEnabled then
-        UserInputService.JumpRequest:Connect(function()
-            hum:ChangeState(Enum.HumanoidStateType.Jumping)
-        end)
-    end
-
     -- ESP
     updateESP()
 
@@ -851,4 +915,4 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
-print("✅ FlamePie v2.2 loaded! G - menu, Y - toggle aimbot.")
+print("✅ FlamePie v2.3 loaded! G - menu, Y - toggle aimbot.")
