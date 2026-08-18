@@ -1,5 +1,5 @@
 -- =============================================
--- FLAMEPIE v2.1 – FIXED & OPTIMIZED
+-- FLAMEPIE v2.2 – FIXED TABS & VISIBILITY
 -- Управление: G – меню, Y – аимбот (вкл/выкл)
 -- =============================================
 
@@ -15,7 +15,7 @@ local parent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlaye
 
 if parent:FindFirstChild("FlamePieGUI") then parent.FlamePieGUI:Destroy() end
 
--- ====== СОХРАНЕНИЕ ПОЛЬЗОВАТЕЛЬСКИХ НАСТРОЕК ======
+-- ====== СОХРАНЕНИЕ НАСТРОЕК ======
 local function getSettings()
     local userId = LocalPlayer.UserId
     if not getgenv().FlamePieSettings then getgenv().FlamePieSettings = {} end
@@ -35,7 +35,7 @@ local function defaultSlider(name, min, max, def)
     return settings.sliders[name]
 end
 
--- ====== ПЕРЕМЕННЫЕ СОСТОЯНИЙ ======
+-- ====== ПЕРЕМЕННЫЕ ======
 local aimbotEnabled = defaultToggle("aimbot", false)
 local aimbotMode = settings.aimbotMode or "Rage"
 local fovValue = defaultSlider("fov", 10, 360, 90)
@@ -116,7 +116,7 @@ local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(1, -120, 1, 0)
 titleText.Position = UDim2.new(0, 15, 0, 0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "🔥 FLAMEPIE v2.1 🔥"
+titleText.Text = "🔥 FLAMEPIE v2.2 🔥"
 titleText.TextColor3 = Color3.fromRGB(255, 180, 50)
 titleText.TextSize = 20
 titleText.Font = Enum.Font.GothamBold
@@ -173,6 +173,7 @@ contentFrame.BorderSizePixel = 0
 contentFrame.ZIndex = 999
 contentFrame.Parent = mainFrame
 
+-- Кнопки вкладок
 local function createTabButton(name, text, y)
     local btn = Instance.new("TextButton")
     btn.Name = name
@@ -192,13 +193,16 @@ local function createTabButton(name, text, y)
     return btn
 end
 
-local tabs = {
+local tabButtons = {
     Aimbot = createTabButton("AimbotTab", "🎯 Aimbot", 10),
     Visual = createTabButton("VisualTab", "👁 Visual", 50),
     Movement = createTabButton("MovementTab", "🏃 Movement", 90),
     Weapon = createTabButton("WeaponTab", "🔫 Weapon", 130),
     Binds = createTabButton("BindsTab", "⌨ Binds", 170)
 }
+
+-- Контейнеры для содержимого вкладок (храним в таблице)
+local containers = {}
 
 local function createTabContainer(tabName)
     local container = Instance.new("Frame")
@@ -209,6 +213,7 @@ local function createTabContainer(tabName)
     container.Visible = false
     container.ZIndex = 999
     container.Parent = contentFrame
+    containers[tabName] = container
     return container
 end
 
@@ -218,18 +223,17 @@ local containerMovement = createTabContainer("MovementTab")
 local containerWeapon = createTabContainer("WeaponTab")
 local containerBinds = createTabContainer("BindsTab")
 
+-- Функция переключения вкладок (надёжная)
 local function showTab(tabName)
-    for name, btn in pairs(tabs) do
+    for name, btn in pairs(tabButtons) do
         btn.BackgroundColor3 = (name == tabName) and Color3.fromRGB(50, 70, 120) or Color3.fromRGB(25, 30, 45)
     end
-    for _, child in ipairs(contentFrame:GetChildren()) do
-        child.Visible = false
+    for name, container in pairs(containers) do
+        container.Visible = (name == tabName)
     end
-    local target = contentFrame:FindFirstChild(tabName)
-    if target then target.Visible = true end
 end
 
--- Вспомогательные элементы
+-- Вспомогательные элементы интерфейса
 local function createToggle(parent, labelText, y, defaultState, onChange)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, 0, 0, 30)
@@ -459,9 +463,14 @@ for _, act in ipairs(actions) do
     bindsY = bindsY + 38
 end
 
+-- Показываем первую вкладку (Aimbot)
 showTab("AimbotTab")
-for name, btn in pairs(tabs) do
-    btn.MouseButton1Click:Connect(function() showTab(name) end)
+
+-- Назначаем обработчики для кнопок вкладок
+for name, btn in pairs(tabButtons) do
+    btn.MouseButton1Click:Connect(function()
+        showTab(name)
+    end)
 end
 
 -- ====== УПРАВЛЕНИЕ: G – меню, Y – аимбот ======
@@ -495,7 +504,6 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
     end
 end)
 
--- Функция проверки видимости
 local function canSeeTarget(targetHead)
     if not char or not rootPart then return false end
     local rayParams = RaycastParams.new()
@@ -530,7 +538,6 @@ local function getClosestInFOV()
     return best
 end
 
--- Применение хитбокса (увеличение головы)
 local function applyHitboxSize()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
@@ -553,8 +560,8 @@ local function applyHitboxSize()
     end
 end
 
--- ESP: 3D Box (рамка) + Имя + HP (полоска)
-local espBoxes = {} -- [Player] = { Box, NameLabel, HealthBar, HealthText }
+-- ESP: 3D Box + Имя + HP (полоска)
+local espBoxes = {}
 
 local function updateESP()
     if not espEnabled then
@@ -578,7 +585,6 @@ local function updateESP()
                 local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
                 if onScreen then
                     if not espBoxes[player] then
-                        -- Создаём элементы
                         local box = Instance.new("Frame")
                         box.Size = UDim2.new(0, 0, 0, 0)
                         box.BackgroundTransparency = 0.6
@@ -624,11 +630,10 @@ local function updateESP()
 
                         espBoxes[player] = { Box = box, NameLabel = nameLbl, HealthBar = healthBg, HealthFill = healthFill, HealthText = healthTxt }
                     end
-                    -- Обновляем позиции и размеры
                     local data = espBoxes[player]
                     local headPos, _ = Camera:WorldToViewportPoint(head.Position)
                     local dist = (Camera.CFrame.Position - root.Position).Magnitude
-                    local scale = 350 / dist
+                    local scale = 350 / math.max(dist, 1)
                     local boxSize = Vector2.new(2.5 * scale, 4.5 * scale)
                     local center = Vector2.new(pos.X, pos.Y - boxSize.Y/2 + 30)
 
@@ -673,7 +678,6 @@ local function updateESP()
     end
 end
 
--- Обработка новых игроков
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function() end)
 end)
@@ -847,4 +851,4 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
-print("✅ FlamePie v2.1 loaded! G - menu, Y - toggle aimbot.")
+print("✅ FlamePie v2.2 loaded! G - menu, Y - toggle aimbot.")
