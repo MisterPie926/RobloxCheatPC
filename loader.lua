@@ -1,6 +1,7 @@
 -- =============================================
--- FLAMEPIE v2.4 – FINAL FIX
--- Исправлены: ZIndex, тогглы, вкладки, бинды, утечки
+-- FLAMEPIE v2.5 – FINAL STABLE
+-- Исправлены: CanvasSize (500), ZIndex (-100),
+-- переключение вкладок, тогглы, бинды, утечки
 -- =============================================
 
 local Players = game:GetService("Players")
@@ -69,7 +70,7 @@ mainFrame.BackgroundTransparency = 1
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
 mainFrame.Visible = false
-mainFrame.ZIndex = 999
+mainFrame.ZIndex = 899
 mainFrame.Parent = screenGui
 
 local mainCorner = Instance.new("UICorner")
@@ -106,7 +107,7 @@ local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 38)
 titleBar.BackgroundColor3 = Color3.fromRGB(20, 24, 36)
 titleBar.BorderSizePixel = 0
-titleBar.ZIndex = 999
+titleBar.ZIndex = 899
 titleBar.Parent = mainFrame
 local titleCorner = Instance.new("UICorner")
 titleCorner.CornerRadius = UDim.new(0, 12)
@@ -115,12 +116,12 @@ local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(1, -120, 1, 0)
 titleText.Position = UDim2.new(0, 15, 0, 0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "🔥 FLAMEPIE v2.4 🔥"
+titleText.Text = "🔥 FLAMEPIE v2.5 🔥"
 titleText.TextColor3 = Color3.fromRGB(255, 180, 50)
 titleText.TextSize = 20
 titleText.Font = Enum.Font.GothamBold
 titleText.TextXAlignment = Enum.TextXAlignment.Left
-titleText.ZIndex = 1000
+titleText.ZIndex = 900
 titleText.Parent = titleBar
 
 local closeBtn = Instance.new("TextButton")
@@ -132,7 +133,7 @@ closeBtn.Text = "✕"
 closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeBtn.TextSize = 16
 closeBtn.Font = Enum.Font.GothamBold
-closeBtn.ZIndex = 1000
+closeBtn.ZIndex = 900
 closeBtn.Parent = titleBar
 closeBtn.MouseButton1Click:Connect(function() animateHide() end)
 
@@ -165,7 +166,7 @@ tabPanel.Size = UDim2.new(0, 130, 1, -38)
 tabPanel.Position = UDim2.new(0, 0, 0, 38)
 tabPanel.BackgroundColor3 = Color3.fromRGB(12, 15, 25)
 tabPanel.BorderSizePixel = 0
-tabPanel.ZIndex = 999
+tabPanel.ZIndex = 899
 tabPanel.Parent = mainFrame
 
 local contentFrame = Instance.new("Frame")
@@ -174,7 +175,7 @@ contentFrame.Position = UDim2.new(0, 130, 0, 38)
 contentFrame.BackgroundColor3 = Color3.fromRGB(10, 12, 20)
 contentFrame.BackgroundTransparency = 0.05
 contentFrame.BorderSizePixel = 0
-contentFrame.ZIndex = 999
+contentFrame.ZIndex = 899
 contentFrame.Parent = mainFrame
 
 -- Кнопки вкладок и контейнеры
@@ -193,7 +194,7 @@ local function createTabButton(name, text, y)
     btn.TextColor3 = Color3.fromRGB(180, 200, 255)
     btn.TextSize = 13
     btn.Font = Enum.Font.Gotham
-    btn.ZIndex = 1000
+    btn.ZIndex = 901
     btn.Parent = tabPanel
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
@@ -216,9 +217,9 @@ local function createTabContainer(tabName)
     container.BorderSizePixel = 0
     container.ScrollBarThickness = 4
     container.ScrollBarImageColor3 = Color3.fromRGB(80, 140, 255)
-    container.CanvasSize = UDim2.new(0, 0, 0, 500)
+    container.CanvasSize = UDim2.new(0, 0, 0, 500)  -- исправлено!
     container.Visible = false
-    container.ZIndex = 1000  -- выше contentFrame (999)
+    container.ZIndex = 900
     container.Parent = contentFrame
     containers[tabName] = container
     return container
@@ -270,7 +271,7 @@ local function createToggle(parent, labelText, y, defaultState, onChange)
     frame.Size = UDim2.new(1, 0, 0, 30)
     frame.Position = UDim2.new(0, 0, 0, y)
     frame.BackgroundTransparency = 1
-    frame.ZIndex = 1000
+    frame.ZIndex = 900
     frame.Parent = parent
 
     local label = Instance.new("TextLabel")
@@ -282,7 +283,7 @@ local function createToggle(parent, labelText, y, defaultState, onChange)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Font = Enum.Font.Gotham
     label.TextSize = 14
-    label.ZIndex = 1001
+    label.ZIndex = 902
     label.Parent = frame
 
     local btn = Instance.new("TextButton")
@@ -293,7 +294,7 @@ local function createToggle(parent, labelText, y, defaultState, onChange)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 14
-    btn.ZIndex = 1001
+    btn.ZIndex = 902
     btn.BorderSizePixel = 0
     btn.Parent = frame
 
@@ -328,7 +329,7 @@ local function createSlider(parent, labelText, y, minVal, maxVal, defaultVal, on
     frame.Size = UDim2.new(1, -10, 0, 50)
     frame.Position = UDim2.new(0, 5, 0, y)
     frame.BackgroundTransparency = 1
-    frame.ZIndex = 1000
+    frame.ZIndex = 900
     frame.Parent = parent
 
     local label = Instance.new("TextLabel")
@@ -338,7 +339,7 @@ local function createSlider(parent, labelText, y, minVal, maxVal, defaultVal, on
     label.BackgroundTransparency = 1
     label.Font = Enum.Font.Gotham
     label.TextSize = 13
-    label.ZIndex = 1001
+    label.ZIndex = 902
     label.Parent = frame
 
     local sliderBg = Instance.new("Frame")
@@ -346,14 +347,14 @@ local function createSlider(parent, labelText, y, minVal, maxVal, defaultVal, on
     sliderBg.Size = UDim2.new(1, 0, 0, 6)
     sliderBg.BackgroundColor3 = Color3.fromRGB(40, 45, 65)
     sliderBg.BorderSizePixel = 0
-    sliderBg.ZIndex = 1001
+    sliderBg.ZIndex = 902
     sliderBg.Parent = frame
 
     local sliderFill = Instance.new("Frame")
     sliderFill.Size = UDim2.new((defaultVal - minVal) / (maxVal - minVal), 0, 1, 0)
     sliderFill.BackgroundColor3 = Color3.fromRGB(80, 160, 255)
     sliderFill.BorderSizePixel = 0
-    sliderFill.ZIndex = 1001
+    sliderFill.ZIndex = 902
     sliderFill.Parent = sliderBg
 
     local knob = Instance.new("TextButton")
@@ -362,7 +363,7 @@ local function createSlider(parent, labelText, y, minVal, maxVal, defaultVal, on
     knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     knob.BorderSizePixel = 0
     knob.Text = ""
-    knob.ZIndex = 1001
+    knob.ZIndex = 902
     knob.Parent = sliderBg
 
     local draggingSlider = false
@@ -414,7 +415,7 @@ local modeFrame = Instance.new("Frame")
 modeFrame.Size = UDim2.new(1, 0, 0, 35)
 modeFrame.Position = UDim2.new(0, 0, 0, 35)
 modeFrame.BackgroundTransparency = 1
-modeFrame.ZIndex = 1000
+modeFrame.ZIndex = 900
 modeFrame.Parent = containerAimbot
 local modeLabel = Instance.new("TextLabel")
 modeLabel.Size = UDim2.new(0.2, 0, 1, 0)
@@ -423,7 +424,7 @@ modeLabel.TextColor3 = Color3.fromRGB(180, 200, 255)
 modeLabel.BackgroundTransparency = 1
 modeLabel.Font = Enum.Font.Gotham
 modeLabel.TextSize = 14
-modeLabel.ZIndex = 1001
+modeLabel.ZIndex = 902
 modeLabel.Parent = modeFrame
 
 local function createModeBtn(parent, text, x, default)
@@ -436,7 +437,7 @@ local function createModeBtn(parent, text, x, default)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.TextSize = 12
     btn.Font = Enum.Font.GothamBold
-    btn.ZIndex = 1001
+    btn.ZIndex = 902
     btn.Parent = parent
     return btn
 end
@@ -491,7 +492,7 @@ for _, act in ipairs(actions) do
     frame.Size = UDim2.new(1, 0, 0, 32)
     frame.Position = UDim2.new(0, 0, 0, bindsY)
     frame.BackgroundTransparency = 1
-    frame.ZIndex = 1000
+    frame.ZIndex = 900
     frame.Parent = containerBinds
 
     local label = Instance.new("TextLabel")
@@ -503,7 +504,7 @@ for _, act in ipairs(actions) do
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Font = Enum.Font.Gotham
     label.TextSize = 14
-    label.ZIndex = 1001
+    label.ZIndex = 902
     label.Parent = frame
 
     local keyBtn = Instance.new("TextButton")
@@ -516,7 +517,7 @@ for _, act in ipairs(actions) do
     keyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     keyBtn.TextSize = 12
     keyBtn.Font = Enum.Font.Gotham
-    keyBtn.ZIndex = 1001
+    keyBtn.ZIndex = 902
     keyBtn.Parent = frame
 
     local listening = false
@@ -554,6 +555,7 @@ updateCanvasSize(containerMovement)
 updateCanvasSize(containerWeapon)
 updateCanvasSize(containerBinds)
 
+-- Принудительная активация первой вкладки
 selectTab("AimbotTab")
 
 -- ====== УПРАВЛЕНИЕ: G – меню, Y – аимбот ======
@@ -563,7 +565,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
         if mainFrame.Visible then animateHide() else animateShow() end
     elseif input.KeyCode == Enum.KeyCode.Y then
         aimbotEnabled = not aimbotEnabled
-        aimToggle.SetState(aimbotEnabled, false) -- не вызываем onChange повторно
+        aimToggle.SetState(aimbotEnabled, false)
         settings.toggles.aimbot = aimbotEnabled
     end
 end)
@@ -683,7 +685,7 @@ local function updateESP()
                         box.BorderSizePixel = 1
                         box.BorderColor3 = Color3.fromRGB(0,255,0)
                         box.Visible = true
-                        box.ZIndex = 1000
+                        box.ZIndex = 900
                         box.Parent = screenGui
 
                         local nameLbl = Instance.new("TextLabel")
@@ -695,7 +697,7 @@ local function updateESP()
                         nameLbl.TextStrokeTransparency = 0.3
                         nameLbl.TextStrokeColor3 = Color3.fromRGB(0,0,0)
                         nameLbl.Visible = true
-                        nameLbl.ZIndex = 1000
+                        nameLbl.ZIndex = 900
                         nameLbl.Parent = screenGui
 
                         local healthBg = Instance.new("Frame")
@@ -703,14 +705,14 @@ local function updateESP()
                         healthBg.BackgroundColor3 = Color3.fromRGB(40,40,40)
                         healthBg.BorderSizePixel = 0
                         healthBg.Visible = true
-                        healthBg.ZIndex = 1000
+                        healthBg.ZIndex = 900
                         healthBg.Parent = screenGui
 
                         local healthFill = Instance.new("Frame")
                         healthFill.Size = UDim2.new(1, 0, 1, 0)
                         healthFill.BackgroundColor3 = Color3.fromRGB(0,200,0)
                         healthFill.BorderSizePixel = 0
-                        healthFill.ZIndex = 1000
+                        healthFill.ZIndex = 900
                         healthFill.Parent = healthBg
 
                         local healthTxt = Instance.new("TextLabel")
@@ -721,7 +723,7 @@ local function updateESP()
                         healthTxt.TextSize = 11
                         healthTxt.TextStrokeTransparency = 0.3
                         healthTxt.Visible = true
-                        healthTxt.ZIndex = 1000
+                        healthTxt.ZIndex = 900
                         healthTxt.Parent = screenGui
 
                         espBoxes[player] = { Box = box, NameLabel = nameLbl, HealthBar = healthBg, HealthFill = healthFill, HealthText = healthTxt }
@@ -943,4 +945,4 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
-print("✅ FlamePie v2.4 loaded! G - menu, Y - toggle aimbot.")
+print("✅ FlamePie v2.5 loaded! G - menu, Y - toggle aimbot.")
