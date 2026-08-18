@@ -1,5 +1,5 @@
--- СКРИПТ ДЛЯ ROBLOX (LocalScript)
--- Вставьте в исполнитель (например, Synapse, Krnl, etc.)
+-- ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ СКРИПТ ДЛЯ ROBLOX (LocalScript)
+-- Вставьте в исполнитель (Synapse, Krnl, Delta и т.д.)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,40 +9,84 @@ local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
--- СОЗДАНИЕ GUI С АНИМАЦИЕЙ ПОЯВЛЕНИЯ
+-- ----- СОЗДАНИЕ GUI -----
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = LocalPlayer.PlayerGui
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 340, 0, 480)
-mainFrame.Position = UDim2.new(0.5, -170, 0.5, -240)
+mainFrame.Size = UDim2.new(0, 360, 0, 520)
+mainFrame.Position = UDim2.new(0.5, -180, 0.5, -260)
 mainFrame.BackgroundColor3 = Color3.new(0.08, 0.08, 0.08)
-mainFrame.BackgroundTransparency = 0.9
+mainFrame.BackgroundTransparency = 0.2
 mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
 
--- Анимация появления (TweenService)
-local appearTween = TweenService:Create(mainFrame, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0.15})
+-- Анимация появления
+local appearTween = TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0.15})
 appearTween:Play()
 
--- Заголовок
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 35)
-title.Position = UDim2.new(0, 0, 0, 0)
-title.Text = "⚡ CHEAT MENU ⚡"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.GothamBold
-title.TextSize = 22
-title.Parent = mainFrame
+-- Заголовок (для перетаскивания)
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 30)
+titleBar.BackgroundColor3 = Color3.new(0.15, 0.15, 0.15)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
 
--- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ СОЗДАНИЯ ЭЛЕМЕНТОВ
-local function createCheckbox(name, yPos, default)
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 1, 0)
+titleLabel.Text = "⚡ CHEAT MENU v11 ⚡"
+titleLabel.TextColor3 = Color3.new(1, 1, 1)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 20
+titleLabel.Parent = titleBar
+
+-- Контейнер для списка элементов (ScrollingFrame + UIListLayout)
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -10, 1, -40)
+scrollFrame.Position = UDim2.new(0, 5, 0, 35)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.ScrollBarThickness = 8
+scrollFrame.Parent = mainFrame
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, 4)
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Parent = scrollFrame
+
+-- ----- ПЕРЕТАСКИВАНИЕ ОКНА (Dragging) -----
+local dragging = false
+local dragStart, startPos
+
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- ----- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ СОЗДАНИЯ ЭЛЕМЕНТОВ -----
+local function createCheckbox(name, default)
     local container = Instance.new("Frame")
     container.Size = UDim2.new(1, 0, 0, 30)
-    container.Position = UDim2.new(0, 0, 0, yPos)
     container.BackgroundTransparency = 1
-    container.Parent = mainFrame
+    container.Parent = scrollFrame
 
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(0.65, 0, 1, 0)
@@ -67,27 +111,25 @@ local function createCheckbox(name, yPos, default)
     btn.MouseButton1Click:Connect(function()
         checked = not checked
         local targetColor = checked and Color3.new(0, 1, 0) or Color3.new(0.3, 0.3, 0.3)
-        local tween = TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = targetColor})
-        tween:Play()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = targetColor}):Play()
     end)
 
     return {
+        Button = btn,  -- теперь есть поле Button
         Get = function() return checked end,
         Toggle = function()
             checked = not checked
             local targetColor = checked and Color3.new(0, 1, 0) or Color3.new(0.3, 0.3, 0.3)
-            local tween = TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = targetColor})
-            tween:Play()
+            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = targetColor}):Play()
         end
     }
 end
 
-local function createTextbox(name, yPos, defaultText)
+local function createTextbox(name, defaultText)
     local container = Instance.new("Frame")
     container.Size = UDim2.new(1, 0, 0, 30)
-    container.Position = UDim2.new(0, 0, 0, yPos)
     container.BackgroundTransparency = 1
-    container.Parent = mainFrame
+    container.Parent = scrollFrame
 
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(0.5, 0, 1, 0)
@@ -112,51 +154,49 @@ local function createTextbox(name, yPos, defaultText)
     box.Parent = container
 
     return {
+        Box = box,  -- поле для доступа к текстбоксу (не обязательно)
         Get = function() return tonumber(box.Text) or 0 end,
-        Set = function(t) box.Text = t end
+        Set = function(t) box.Text = tostring(t) end
     }
 end
 
--- СОЗДАНИЕ ЭЛЕМЕНТОВ УПРАВЛЕНИЯ
-local yOff = 40
-
--- Aimbot (выбор режима Rage/Legit + чекбокс включения)
-local aimFrame = Instance.new("Frame")
-aimFrame.Size = UDim2.new(1, 0, 0, 50)
-aimFrame.Position = UDim2.new(0, 0, 0, yOff)
-aimFrame.BackgroundTransparency = 1
-aimFrame.Parent = mainFrame
-yOff = yOff + 55
+-- ----- СОЗДАНИЕ ЭЛЕМЕНТОВ УПРАВЛЕНИЯ -----
+-- Aimbot: отдельный контейнер с двумя режимами
+local aimContainer = Instance.new("Frame")
+aimContainer.Size = UDim2.new(1, 0, 0, 50)
+aimContainer.BackgroundTransparency = 1
+aimContainer.Parent = scrollFrame
 
 local aimLabel = Instance.new("TextLabel")
-aimLabel.Size = UDim2.new(1, 0, 0, 20)
+aimLabel.Size = UDim2.new(0.5, 0, 0.5, 0)
+aimLabel.Position = UDim2.new(0, 5, 0, 0)
 aimLabel.Text = "Aimbot:"
 aimLabel.TextColor3 = Color3.new(0.9,0.9,0.9)
 aimLabel.BackgroundTransparency = 1
+aimLabel.TextXAlignment = Enum.TextXAlignment.Left
 aimLabel.Font = Enum.Font.Gotham
 aimLabel.TextSize = 16
-aimLabel.TextXAlignment = Enum.TextXAlignment.Left
-aimLabel.Position = UDim2.new(0, 5, 0, 0)
-aimLabel.Parent = aimFrame
+aimLabel.Parent = aimContainer
 
-local aimEnabled = createCheckbox("", 25, false) -- чекбокс включения
-aimEnabled.Button.Position = UDim2.new(0.2, 0, 0.02, 0) -- сдвинем
+local aimEnabledCheck = createCheckbox("", false)  -- чекбокс включения, без текста
+aimEnabledCheck.Button.Position = UDim2.new(0.15, 0, 0.1, 0)  -- сдвинем
+aimEnabledCheck.Button.Parent = aimContainer
 
 local rageBtn = Instance.new("TextButton")
-rageBtn.Size = UDim2.new(0.25, 0, 0, 25)
-rageBtn.Position = UDim2.new(0.4, 0, 0.25, 0)
+rageBtn.Size = UDim2.new(0.2, 0, 0.6, 0)
+rageBtn.Position = UDim2.new(0.35, 0, 0.2, 0)
 rageBtn.Text = "Rage"
-rageBtn.BackgroundColor3 = Color3.new(0.3,0.3,0.3)
+rageBtn.BackgroundColor3 = Color3.new(0, 1, 0)
 rageBtn.BorderSizePixel = 0
-rageBtn.Parent = aimFrame
+rageBtn.Parent = aimContainer
 
 local legitBtn = Instance.new("TextButton")
-legitBtn.Size = UDim2.new(0.25, 0, 0, 25)
-legitBtn.Position = UDim2.new(0.7, 0, 0.25, 0)
+legitBtn.Size = UDim2.new(0.2, 0, 0.6, 0)
+legitBtn.Position = UDim2.new(0.6, 0, 0.2, 0)
 legitBtn.Text = "Legit"
 legitBtn.BackgroundColor3 = Color3.new(0.3,0.3,0.3)
 legitBtn.BorderSizePixel = 0
-legitBtn.Parent = aimFrame
+legitBtn.Parent = aimContainer
 
 local aimMode = "Rage"
 local function setAimMode(mode)
@@ -170,83 +210,85 @@ rageBtn.MouseButton1Click:Connect(function() setAimMode("Rage") end)
 legitBtn.MouseButton1Click:Connect(function() setAimMode("Legit") end)
 setAimMode("Rage")
 
-local wallHack = createCheckbox("WallHack (3D Box)", yOff, false)
-yOff = yOff + 35
-local speedBox = createTextbox("SpeedHack (WalkSpeed)", yOff, "50")
-yOff = yOff + 35
-local speedShot = createCheckbox("SpeedShot", yOff, false)
-yOff = yOff + 35
-local noRecoil = createCheckbox("No Recoil", yOff, false)
-yOff = yOff + 35
-local spinBot = createCheckbox("SpinBot", yOff, false)
-yOff = yOff + 35
-local noCdJump = createCheckbox("No CD Jump", yOff, false)
-yOff = yOff + 35
+local wallHack = createCheckbox("WallHack (3D Box)", false)
+local speedBox = createTextbox("SpeedHack (WalkSpeed)", "50")
+local speedShot = createCheckbox("SpeedShot", false)
+local noRecoil = createCheckbox("No Recoil", false)
+local spinBot = createCheckbox("SpinBot", false)
+local noCdJump = createCheckbox("No CD Jump", false)
 
--- ПЕРЕМЕННЫЕ СОСТОЯНИЙ
+-- ----- ПЕРЕМЕННЫЕ СОСТОЯНИЙ (связываем с чекбоксами) -----
 local wallActive = false
-local speedActive = false
 local speedShotActive = false
 local noRecoilActive = false
 local spinActive = false
 local noCdJumpActive = false
 local aimActive = false
-local aimModeCurrent = "Rage"
 
--- ОБНОВЛЕНИЕ СОСТОЯНИЙ ПРИ КЛИКЕ
+-- Обновляем состояния через клики по кнопкам (теперь обращение через .Button)
 wallHack.Button.MouseButton1Click:Connect(function() wallActive = wallHack.Get() end)
 speedShot.Button.MouseButton1Click:Connect(function() speedShotActive = speedShot.Get() end)
 noRecoil.Button.MouseButton1Click:Connect(function() noRecoilActive = noRecoil.Get() end)
 spinBot.Button.MouseButton1Click:Connect(function() spinActive = spinBot.Get() end)
 noCdJump.Button.MouseButton1Click:Connect(function() noCdJumpActive = noCdJump.Get() end)
-aimEnabled.Button.MouseButton1Click:Connect(function() aimActive = aimEnabled.Get() end)
-rageBtn.MouseButton1Click:Connect(function() aimModeCurrent = "Rage" end)
-legitBtn.MouseButton1Click:Connect(function() aimModeCurrent = "Legit" end)
+aimEnabledCheck.Button.MouseButton1Click:Connect(function() aimActive = aimEnabledCheck.Get() end)
 
--- СПИСОК ИГРОКОВ ДЛЯ ESP
-local highlights = {}
-local function updateWall()
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer then
-            if plr.Character then
-                if wallActive then
-                    if not highlights[plr] then
-                        local hl = Instance.new("Highlight")
-                        hl.Parent = plr.Character
-                        hl.Adornee = plr.Character
-                        hl.FillColor = Color3.new(1, 0, 0)
-                        hl.FillTransparency = 0.4
-                        hl.OutlineColor = Color3.new(0, 1, 0)
-                        highlights[plr] = hl
-                    end
-                else
-                    if highlights[plr] then
-                        highlights[plr]:Destroy()
-                        highlights[plr] = nil
-                    end
-                end
-            end
+-- ----- РАБОТА С HIGHLIGHT (WallHack) без утечек -----
+local highlights = {}  -- { [Player] = Highlight }
+
+local function addHighlight(plr)
+    local char = plr.Character
+    if not char then return end
+    if highlights[plr] then
+        highlights[plr]:Destroy()
+        highlights[plr] = nil
+    end
+    local hl = Instance.new("Highlight")
+    hl.Adornee = char
+    hl.FillColor = Color3.new(1, 0, 0)
+    hl.FillTransparency = 0.4
+    hl.OutlineColor = Color3.new(0, 1, 0)
+    hl.Enabled = wallActive  -- сразу применяем состояние
+    hl.Parent = char
+    highlights[plr] = hl
+end
+
+-- Подписываемся на новых игроков и их персонажей
+Players.PlayerAdded:Connect(function(plr)
+    plr.CharacterAdded:Connect(function(char)
+        addHighlight(plr)
+    end)
+    -- если персонаж уже есть
+    if plr.Character then
+        addHighlight(plr)
+    end
+end)
+
+-- Обработка уже существующих игроков
+for _, plr in ipairs(Players:GetPlayers()) do
+    if plr ~= LocalPlayer then
+        plr.CharacterAdded:Connect(function(char)
+            addHighlight(plr)
+        end)
+        if plr.Character then
+            addHighlight(plr)
         end
     end
 end
 
--- ОБРАБОТКА НОВЫХ ИГРОКОВ
-Players.PlayerAdded:Connect(function(plr)
-    plr.CharacterAdded:Connect(function(char)
-        if wallActive then
-            local hl = Instance.new("Highlight")
-            hl.Parent = char
-            hl.Adornee = char
-            hl.FillColor = Color3.new(1, 0, 0)
-            hl.FillTransparency = 0.4
-            hl.OutlineColor = Color3.new(0, 1, 0)
-            highlights[plr] = hl
+-- Функция обновления состояния всех Highlight в цикле
+local function updateWallState()
+    for plr, hl in pairs(highlights) do
+        if hl and hl.Parent then
+            hl.Enabled = wallActive
+        else
+            highlights[plr] = nil
         end
-    end)
-end)
+    end
+end
 
--- Aimbot: поиск ближайшего
-local function getClosest()
+-- ----- AIMBOT: поиск ближайшего врага -----
+local function getClosestEnemy()
     local closest, minDist = nil, math.huge
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
@@ -264,112 +306,81 @@ local function getClosest()
     return closest
 end
 
--- SpinBot: вращение через Tween (бесконечный цикл)
-local spinTween = nil
-local function startSpin()
-    if not spinActive then return end
-    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    local current = root.CFrame
-    local target = current * CFrame.Angles(0, math.rad(360), 0)
-    local tweenInfoSpin = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-    spinTween = TweenService:Create(root, tweenInfoSpin, {CFrame = target})
-    spinTween:Play()
-    spinTween.Completed:Connect(function()
-        spinTween = nil
-        if spinActive then
-            startSpin()
-        end
-    end)
-end
+-- ----- SPINBOT (вращение через CFrame в RenderStepped) -----
+local spinSpeed = 360  -- градусов в секунду
 
--- ОСНОВНОЙ ЦИКЛ ОБНОВЛЕНИЯ
-RunService.RenderStepped:Connect(function()
-    -- SpeedHack
-    local spd = speedBox.Get()
+-- ----- ОСНОВНОЙ ЦИКЛ ОБНОВЛЕНИЯ (RenderStepped) -----
+RunService.RenderStepped:Connect(function(deltaTime)
     local char = LocalPlayer.Character
-    if char and char:FindFirstChild("Humanoid") then
-        local hum = char.Humanoid
-        if spd > 0 then
-            hum.WalkSpeed = spd
-        else
-            hum.WalkSpeed = 16
-        end
+    if not char then return end
+    local hum = char:FindFirstChild("Humanoid")
+    if not hum then return end
+
+    -- 1) SpeedHack
+    local spd = speedBox.Get()
+    if spd > 0 then
+        hum.WalkSpeed = spd
+    else
+        hum.WalkSpeed = 16
     end
 
-    -- No CD Jump
-    if noCdJumpActive and char and char:FindFirstChild("Humanoid") then
-        local hum = char.Humanoid
+    -- 2) No CD Jump
+    if noCdJumpActive then
         hum.JumpPower = 70
-        -- Эмуляция быстрого прыжка (если зажат пробел)
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
             hum.Jump = true
         end
     else
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.JumpPower = 50
-        end
+        hum.JumpPower = 50
     end
 
-    -- SpeedShot & No Recoil (ищем оружие)
-    if char then
-        local tool = char:FindFirstChildOfClass("Tool")
-        if tool then
-            if speedShotActive then
-                for _, child in ipairs(tool:GetDescendants()) do
-                    if child:IsA("NumberValue") and child.Name == "CooldownTime" then
-                        child.Value = 0
-                    end
+    -- 3) SpeedShot & No Recoil (ищем оружие в руках)
+    local tool = char:FindFirstChildOfClass("Tool")
+    if tool then
+        if speedShotActive then
+            for _, child in ipairs(tool:GetDescendants()) do
+                if child:IsA("NumberValue") and child.Name == "CooldownTime" then
+                    child.Value = 0
                 end
             end
-            if noRecoilActive then
-                for _, child in ipairs(tool:GetDescendants()) do
-                    if child:IsA("NumberValue") and (child.Name == "Recoil" or child.Name == "CameraRecoil") then
-                        child.Value = 0
-                    end
+        end
+        if noRecoilActive then
+            for _, child in ipairs(tool:GetDescendants()) do
+                if child:IsA("NumberValue") and (child.Name == "Recoil" or child.Name == "CameraRecoil") then
+                    child.Value = 0
                 end
             end
         end
     end
 
-    -- WallHack
-    updateWall()
+    -- 4) WallHack (обновляем Enabled)
+    updateWallState()
 
-    -- SpinBot
-    if spinActive then
-        if not spinTween then
-            startSpin()
-        end
-    else
-        if spinTween then
-            spinTween:Cancel()
-            spinTween = nil
-        end
+    -- 5) SpinBot (вращение через CFrame в цикле)
+    local rootPart = char:FindFirstChild("HumanoidRootPart")
+    if spinActive and rootPart then
+        -- вращаем на spinSpeed градусов в секунду
+        local angle = math.rad(spinSpeed * deltaTime)
+        rootPart.CFrame = rootPart.CFrame * CFrame.Angles(0, angle, 0)
     end
 
-    -- Aimbot
+    -- 6) Aimbot
     if aimActive then
-        local target = getClosest()
+        local target = getClosestEnemy()
         if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
             local targetPos = target.Character.HumanoidRootPart.Position
             local cameraPos = Camera.CFrame.Position
             local lookAt = CFrame.lookAt(cameraPos, targetPos)
-            if aimModeCurrent == "Rage" then
+            if aimMode == "Rage" then
                 Camera.CFrame = lookAt
-            else -- Legit с плавным наведением (Tween)
-                local currentCF = Camera.CFrame
-                local targetCF = lookAt
-                -- Используем Tween для плавного перехода
-                local tweenInfoLegit = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-                local tween = TweenService:Create(Camera, tweenInfoLegit, {CFrame = targetCF})
-                tween:Play()
+            else -- Legit: плавное наведение через Lerp (без TweenService)
+                Camera.CFrame = Camera.CFrame:Lerp(lookAt, 0.25)  -- 0.25 - скорость сглаживания
             end
         end
     end
 end)
 
--- АНИМАЦИЯ ПРИ ЗАКРЫТИИ (опционально)
--- Можно добавить горячую клавишу для скрытия (например, Insert)
+-- ----- КЛАВИША ДЛЯ СКРЫТИЯ МЕНЮ (Insert) -----
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.Insert then
@@ -377,5 +388,5 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Завершающее сообщение (в консоль)
-print("Чит загружен. Нажмите Insert для скрытия/показа меню.")
+-- Вывод в консоль
+print("Чит v11 загружен без ошибок. Нажмите Insert для скрытия/показа.")
